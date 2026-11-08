@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="pl" class="dark scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STRATEG.AI v1.0.8 – Deterministyczna Izolacja Obliczeń od LLM | GitHub Pages</title>
+  <meta name="description" content="Instytucjonalny system doradztwa inwestycyjnego i terminal egzekucji futures ze ścisłą deterministyczną izolacją obliczeń matematycznych od LLM. Python 3.13, FastAPI, React." />
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6'/></svg>" />
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            slate: {
+              850: '#0f172a',
+              900: '#0b1120',
+              950: '#020617',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Glassmorphism styling */
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.15);
+    }
+    .glass-card-glow {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      box-shadow: 0 0 35px -5px rgba(6, 182, 212, 0.15);
+    }
+    .glow-cyan {
+      box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.4);
+    }
+    .glow-purple {
+      box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.4);
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #020617;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #38bdf8;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 font-sans selection:bg-cyan-500 selection:text-black min-h-screen overflow-x-hidden">
+
+  <!-- ========================================================================= -->
+  <!-- 1. TOP ANNOUNCEMENT & CVE STATUS BAR -->
+  <!-- ========================================================================= -->
+  <div class="bg-gradient-to-r from-cyan-950/80 via-slate-900 to-purple-950/80 border-b border-cyan-500/20 px-3 py-1.5 text-xs">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-mono text-[11px]">
+          <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          CVE-2026-114108 Guarded
+        </span>
+        <span class="text-slate-300 hidden sm:inline">
+          Zasada nr 1: Ścisła izolacja obliczeń matematycznych od LLM
+        </span>
+      </div>
+      <div class="flex items-center gap-3 font-mono text-[11px] text-slate-400">
+        <span>Python 3.13 (uv)</span>
+        <span>•</span>
+        <span>TradingAgents v0.6.0</span>
+        <span>•</span>
+        <a href="https://github.com/gitgregor/strateg_ai_v108_determ_separ_llm" target="_blank" class="text-cyan-400 hover:text-cyan-300 underline font-semibold flex items-center gap-1">
+          GitHub: gitgregor/strateg_ai_v108 ↗
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 2. NAVBAR -->
+  <!-- ========================================================================= -->
+  <nav class="sticky top-0 z-50 glass-card border-b border-slate-800/80 px-4 py-2.5">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      
+      <!-- Brand -->
+      <a href="#" class="flex items-center space-x-2.5">
+        <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.4" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center space-x-1.5">
+            <span class="font-extrabold text-lg tracking-tight text-white">STRATEG<span class="text-cyan-400">.AI</span></span>
+            <span class="px-1.5 py-0.2 rounded bg-slate-800 text-[10px] font-mono text-cyan-300 border border-slate-700">v1.0.8</span>
+          </div>
+          <div class="text-[10px] text-slate-400 font-mono hidden md:block">Institutional Advisor & Futures Cockpit</div>
+        </div>
+      </a>
+
+      <!-- Navigation Links -->
+      <div class="hidden lg:flex items-center space-x-6 text-sm font-semibold text-slate-300">
+        <a href="#zasada-nr-1" class="hover:text-cyan-400 transition-colors">🏛️ Zasada Nr 1</a>
+        <a href="#simulator" class="hover:text-cyan-400 transition-colors">⚡ Terminal Futures</a>
+        <a href="#chart-preview" class="hover:text-cyan-400 transition-colors">📈 Wykres & SMC</a>
+        <a href="#mobile-sync" class="hover:text-cyan-400 transition-colors">📱 Mobile & Chmura</a>
+        <a href="#architektura" class="hover:text-cyan-400 transition-colors">📦 Architektura</a>
+        <a href="#quickstart" class="hover:text-cyan-400 transition-colors">🚀 Szybki Start</a>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center space-x-2.5">
+        <a href="#simulator" class="px-3 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 text-xs font-bold transition-all flex items-center gap-1.5">
+          <span>⚡ Demo Futures</span>
+        </a>
+        <a href="https://github.com/gitgregor/strateg_ai_v108_determ_separ_llm" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition-all shadow-md shadow-cyan-500/25 flex items-center gap-1.5">
+          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          <span>GitHub Repo ⭐</span>
+        </a>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- ========================================================================= -->
+  <!-- 3. HERO SECTION -->
+  <!-- ========================================================================= -->
+  <section class="relative pt-12 pb-20 px-4 overflow-hidden">
+    <!-- Glowing background blurs -->
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute top-1/3 right-10 w-[400px] h-[300px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <div class="max-w-6xl mx-auto text-center space-y-6 relative z-10">
+      
+      <!-- Pill Badge -->
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/40 text-cyan-300 text-xs font-mono shadow-lg shadow-cyan-500/10">
+        <span class="flex h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span>
+        <span>Strateg AI v1.0.8 • Python 3.13 • FastAPI • React 18</span>
+      </div>
+
+      <!-- Main Title -->
+      <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
+        Zasada Architektoniczna Nr 1:<br />
+        <span class="bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">
+          Deterministyczna Izolacja Obliczeń od LLM
+        </span>
+      </h1>
+
+      <!-- Subtitle -->
+      <p class="max-w-3xl mx-auto text-base sm:text-lg text-slate-300 font-normal leading-relaxed">
+        Instytucjonalny terminal egzekucji kontraktów futures i silnik doradczy. Modele językowe nigdy nie liczą wskaźników ani nie halucynują cen. 100% deterministyczna analiza matematyczna, ochrona przed likwidacją i wieloetapowe zbieranie zysków (TP1, TP2, TP3 dla $R:R > 2.0$).
+      </p>
+
+      <!-- CTA Buttons -->
+      <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+        <a href="#simulator" class="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-extrabold text-sm shadow-xl shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 cursor-pointer">
+          ⚡ Przetestuj Terminal Futures na Żywo
+        </a>
+        <a href="#quickstart" class="px-6 py-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-sm transition-all cursor-pointer flex items-center gap-2">
+          <span>🚀 Uruchom Lokalnie (Docker / Python)</span>
+        </a>
+        <a href="https://github.com/gitgregor/strateg_ai_v108_determ_separ_llm" target="_blank" class="px-4 py-3 rounded-xl bg-slate-900/60 hover:bg-slate-800 text-amber-300 border border-amber-500/30 text-sm font-semibold transition-all">
+          ⭐ Star on GitHub
+        </a>
+      </div>
+
+      <!-- Live Highlights Grid -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-8 max-w-4xl mx-auto text-left">
+        <div class="glass-card rounded-2xl p-4 space-y-1">
+          <div class="text-[10px] uppercase font-mono text-slate-400">Architektura</div>
+          <div class="text-base font-bold text-cyan-300">Determinizm 100%</div>
+          <div class="text-xs text-slate-400">Zero halucynacji wskaźników przez LLM</div>
+        </div>
+        <div class="glass-card rounded-2xl p-4 space-y-1">
+          <div class="text-[10px] uppercase font-mono text-slate-400">Futures Terminal</div>
+          <div class="text-base font-bold text-purple-300">Multi-TP & Likwidacja</div>
+          <div class="text-xs text-slate-400">TP1, TP2, TP3 dla R:R > 2.0</div>
+        </div>
+        <div class="glass-card rounded-2xl p-4 space-y-1">
+          <div class="text-[10px] uppercase font-mono text-slate-400">Synchronizacja</div>
+          <div class="text-base font-bold text-emerald-300">Desktop ⇄ Mobile</div>
+          <div class="text-xs text-slate-400">WebSocket + Chmura w czasie rzeczywistym</div>
+        </div>
+        <div class="glass-card rounded-2xl p-4 space-y-1">
+          <div class="text-[10px] uppercase font-mono text-slate-400">Bezpieczeństwo</div>
+          <div class="text-base font-bold text-amber-300">CVE-2026-114108</div>
+          <div class="text-xs text-slate-400">Tokenized Bridge Guard & Kill-Switch</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 4. INTERACTIVE FUTURES TERMINAL SIMULATOR (LIVE IN BROWSER) -->
+  <!-- ========================================================================= -->
+  <section id="simulator" class="py-16 px-4 bg-slate-950/60 border-t border-b border-slate-900">
+    <div class="max-w-6xl mx-auto space-y-8">
+      
+      <div class="text-center space-y-2">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-mono font-bold">
+          <span>⚡ LIVE INTERACTIVE SIMULATOR</span>
+        </div>
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-white">
+          Interaktywny Symulator Terminala Futures
+        </h2>
+        <p class="text-sm text-slate-400 max-w-2xl mx-auto">
+          Przetestuj logikę kalkulacji pozycji, wieloetapowego zamykania zysków (TP1/TP2/TP3) oraz ochrony przed likwidacją bez uruchamiania backendu.
+        </p>
+      </div>
+
+      <!-- Simulator Card -->
+      <div class="glass-card-glow rounded-3xl p-4 sm:p-6 space-y-6">
+        
+        <!-- Top Metrics Row: Portfolio -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 font-mono">
+          <div>
+            <div class="text-[10px] text-slate-400 uppercase">Kapitał Portfela ($Cash)</div>
+            <div id="sim-cash" class="text-lg font-extrabold text-white">$100,000.00</div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400 uppercase">Użyty Margin ($Depozyt)</div>
+            <div id="sim-margin" class="text-lg font-extrabold text-purple-300">$0.00</div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400 uppercase">Niezrealizowany PnL (Live)</div>
+            <div id="sim-unrealized" class="text-lg font-extrabold text-slate-400">$0.00</div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400 uppercase">Zrealizowany Zysk Łączny</div>
+            <div id="sim-realized" class="text-lg font-extrabold text-emerald-400">+$0.00</div>
+          </div>
+        </div>
+
+        <!-- Terminal Workspace: 2 Columns -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Column 1: Order Controls Form (5 Cols) -->
+          <div class="lg:col-span-5 space-y-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-800/80">
+            
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span class="text-xs font-bold text-slate-300 uppercase tracking-wide">Parametry Kontraktu</span>
+              <button onclick="applyAiPreset()" class="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30 transition-all cursor-pointer">
+                ⚡ Zastosuj AI: LONG BTC
+              </button>
+            </div>
+
+            <!-- Direction Toggle: LONG / SHORT -->
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btn-long" onclick="setDirection('LONG')" class="py-2 rounded-xl text-xs font-extrabold transition-all bg-emerald-600 text-white shadow-md shadow-emerald-600/30 cursor-pointer">
+                ▲ LONG (Kupno)
+              </button>
+              <button id="btn-short" onclick="setDirection('SHORT')" class="py-2 rounded-xl text-xs font-extrabold transition-all bg-slate-800 text-slate-400 hover:text-white cursor-pointer">
+                ▼ SHORT (Sprzedaż)
+              </button>
+            </div>
+
+            <!-- Inputs: Price, Qty, Leverage -->
+            <div class="space-y-3 font-mono text-xs">
+              <div>
+                <label class="block text-slate-400 text-[11px] mb-1">Cena Wejścia ($ Entry Price)</label>
+                <input id="input-price" type="number" value="70000" oninput="recalculate()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold focus:border-cyan-400 outline-none" />
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-slate-400 text-[11px] mb-1">Ilość (BTC)</label>
+                  <input id="input-qty" type="number" step="0.1" value="1.0" oninput="recalculate()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold focus:border-cyan-400 outline-none" />
+                </div>
+                <div>
+                  <label class="block text-slate-400 text-[11px] mb-1">Dźwignia: <span id="label-lev" class="text-cyan-300 font-bold">10x</span></label>
+                  <select id="select-lev" onchange="onLeverageChange()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-white font-bold focus:border-cyan-400 outline-none">
+                    <option value="5">5x</option>
+                    <option value="10" selected>10x</option>
+                    <option value="20">20x</option>
+                    <option value="50">50x</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-slate-400 text-[11px] mb-1">Stop Loss ($)</label>
+                <input id="input-sl" type="number" value="68000" oninput="recalculate()" class="w-full bg-slate-950 border border-rose-500/40 rounded-xl px-3 py-2 text-rose-300 font-bold focus:border-rose-400 outline-none" />
+              </div>
+
+              <!-- Multi-TP Levels -->
+              <div class="space-y-1.5 p-2.5 rounded-xl bg-slate-950/70 border border-emerald-500/30">
+                <div class="text-[11px] font-bold text-emerald-400 flex justify-between">
+                  <span>Wieloetapowe TP (R:R > 2.0)</span>
+                  <span class="text-[9px] text-slate-400">Księgowanie częściowe</span>
+                </div>
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="text-slate-400">TP1 (33%):</span>
+                  <input id="input-tp1" type="number" value="74000" oninput="recalculate()" class="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-right text-emerald-300 font-bold" />
+                  <span id="rr-tp1" class="text-slate-400 font-sans text-[10px]">R:R 2.0:1</span>
+                </div>
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="text-slate-400">TP2 (33%):</span>
+                  <input id="input-tp2" type="number" value="76000" oninput="recalculate()" class="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-right text-emerald-300 font-bold" />
+                  <span id="rr-tp2" class="text-slate-400 font-sans text-[10px]">R:R 3.0:1</span>
+                </div>
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="text-slate-400">TP3 (34%):</span>
+                  <input id="input-tp3" type="number" value="79000" oninput="recalculate()" class="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-right text-emerald-300 font-bold" />
+                  <span id="rr-tp3" class="text-slate-400 font-sans text-[10px]">R:R 4.5:1</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Pre-Execution Calculation Card -->
+            <div class="rounded-xl bg-slate-950 p-3 font-mono text-[11px] space-y-1.5 border border-slate-800">
+              <div class="flex justify-between text-slate-400">
+                <span>Wartość notional:</span>
+                <span id="calc-notional" class="font-bold text-white">$70,000.00</span>
+              </div>
+              <div class="flex justify-between text-slate-400">
+                <span>Wymagany depozyt (Margin):</span>
+                <span id="calc-margin" class="font-bold text-purple-300">$7,000.00</span>
+              </div>
+              <div class="flex justify-between text-rose-400">
+                <span>Szacowana Cena Likwidacji:</span>
+                <span id="calc-liq" class="font-extrabold text-rose-300">$63,700.00</span>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button onclick="openSimulationPosition()" class="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs tracking-wide shadow-lg shadow-purple-600/25 transition-all cursor-pointer">
+              ⚡ Otwórz Pozycję Futures
+            </button>
+
+          </div>
+
+          <!-- Column 2: Live Monitor & Action Event Simulation (7 Cols) -->
+          <div class="lg:col-span-7 space-y-4">
+            
+            <!-- Simulation Triggers Panel -->
+            <div class="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-2">
+              <span class="text-xs font-bold text-slate-300">🎮 Symuluj Ruchy Rynku:</span>
+              <div class="flex flex-wrap gap-2">
+                <button onclick="simulateTick(74500)" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold hover:bg-emerald-500/30 cursor-pointer">
+                  ▲ Ruch na $74,500 (Wbicie TP1)
+                </button>
+                <button onclick="simulateTick(79500)" class="px-2.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-bold hover:bg-cyan-500/30 cursor-pointer">
+                  ▲▲ Ruch na $79,500 (Pełne TP3)
+                </button>
+                <button onclick="simulateTick(63000)" class="px-2.5 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-bold hover:bg-rose-500/30 cursor-pointer">
+                  ▼▼ Spadek na $63,000 (Likwidacja!)
+                </button>
+                <button onclick="resetSim()" class="px-2 py-1.5 rounded-lg bg-slate-800 text-slate-400 text-xs hover:text-white cursor-pointer">
+                  ↺ Reset
+                </button>
+              </div>
+            </div>
+
+            <!-- Active Position Card Container -->
+            <div id="position-container" class="space-y-3">
+              <div class="flex flex-col items-center justify-center p-8 rounded-2xl border border-dashed border-slate-800 bg-slate-950/40 text-slate-500 text-xs space-y-2 text-center">
+                <span class="text-3xl">💤</span>
+                <p class="font-bold text-slate-400">Brak otwartej pozycji w symulatorze.</p>
+                <p>Ustaw parametry po lewej stronie i kliknij <b>"⚡ Otwórz Pozycję Futures"</b>.</p>
+              </div>
+            </div>
+
+            <!-- Event Log / History -->
+            <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-3.5 space-y-2 font-mono text-xs">
+              <div class="flex items-center justify-between text-slate-400 pb-1.5 border-b border-slate-800">
+                <span class="font-bold text-slate-300 font-sans">📋 Dziennik Zdarzeń Egzekucji i Likwidacji na Żywo</span>
+                <span class="text-[10px]">Real-Time Event Stream</span>
+              </div>
+              <div id="event-log" class="space-y-1.5 max-h-40 overflow-y-auto text-[11px] pr-1">
+                <div class="text-slate-500 italic">Gotowy do rejestracji transakcji.</div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 5. INTERACTIVE CANDLESTICK CHART & SMC PREVIEW -->
+  <!-- ========================================================================= -->
+  <section id="chart-preview" class="py-16 px-4">
+    <div class="max-w-6xl mx-auto space-y-8">
+      
+      <div class="text-center space-y-2">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold">
+          <span>📈 TRADINGVIEW LIGHTWEIGHT CHARTS</span>
+        </div>
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-white">
+          Wykres Instytucjonalny & Smart Money Concepts
+        </h2>
+        <p class="text-sm text-slate-400 max-w-2xl mx-auto">
+          Całkowicie deterministyczna detekcja stref popytu/podaży (Order Blocks), dysbalansu płynności (Fair Value Gaps), przełamań struktury (BOS) oraz wskaźników kompresji Carter Squeeze.
+        </p>
+      </div>
+
+      <!-- Chart Mockup Box -->
+      <div class="glass-card-glow rounded-3xl overflow-hidden border border-slate-800">
+        
+        <!-- Chart Toolbar -->
+        <div class="bg-slate-900 px-4 py-2.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-white text-sm">BTC/USDT</span>
+            <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold">BINANCE</span>
+            <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[10px] font-bold">FUTURES</span>
+            <span class="text-slate-400 text-xs font-sans">| 1D</span>
+          </div>
+
+          <!-- Indicator Toggles Preview -->
+          <div class="flex items-center space-x-1.5 text-[10px]">
+            <span class="px-2 py-0.5 rounded bg-cyan-500 text-slate-950 font-bold">✓ SMA20</span>
+            <span class="px-2 py-0.5 rounded bg-pink-500 text-white font-bold">✓ Bollinger</span>
+            <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">✓ FVG Gaps</span>
+            <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">✓ Order Blocks</span>
+            <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-bold">✓ BOS Wybicia</span>
+          </div>
+        </div>
+
+        <!-- Canvas Chart Simulation -->
+        <div class="relative bg-slate-950 h-72 sm:h-96 w-full flex items-center justify-center p-4">
+          <canvas id="hero-chart-canvas" class="w-full h-full cursor-crosshair"></canvas>
+          
+          <!-- Overlay badges -->
+          <div class="absolute top-4 left-4 pointer-events-none bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800 text-[11px] font-mono space-x-2">
+            <span>O: <b class="text-white">$68,450.00</b></span>
+            <span>H: <b class="text-emerald-400">$71,200.00</b></span>
+            <span>L: <b class="text-rose-400">$67,890.00</b></span>
+            <span>C: <b class="text-cyan-300">$70,410.00</b></span>
+            <span class="text-emerald-400 font-bold">+2.86%</span>
+          </div>
+
+          <div class="absolute bottom-4 right-4 pointer-events-none bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-3 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5">
+            <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
+            <span>SMC Bullish Order Block Detected ($68,120)</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 6. DESKTOP & MOBILE RESPONSIVENESS WITH CLOUD SYNC -->
+  <!-- ========================================================================= -->
+  <section id="mobile-sync" class="py-16 px-4 bg-slate-900/40 border-t border-b border-slate-800/80">
+    <div class="max-w-6xl mx-auto space-y-8">
+      
+      <div class="text-center space-y-2">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-bold">
+          <span>📱💻 DUO COCKPIT & CLOUD SYNC</span>
+        </div>
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-white">
+          Pełna Responsywność: Desktop & Mobile Phone
+        </h2>
+        <p class="text-sm text-slate-400 max-w-2xl mx-auto">
+          Zarządzaj portfelem na pełnoekranowym stanowisku tradingowym w biurze lub bezpośrednio ze smartfona w podróży dzięki dwukierunkowej synchronizacji WebSocket w chmurze.
+        </p>
+      </div>
+
+      <!-- Responsive Comparison Showcase -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+        
+        <!-- Desktop Card -->
+        <div class="glass-card rounded-3xl p-5 space-y-4 border border-cyan-500/30">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center space-x-2">
+              <span class="text-2xl">💻</span>
+              <div>
+                <h3 class="font-extrabold text-white text-base">Desktop Institutional Cockpit</h3>
+                <p class="text-[11px] text-slate-400 font-mono">Dopasowana belka w jednej linii • Multi-Monitor</p>
+              </div>
+            </div>
+            <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono text-[10px] font-bold">STANOWISKO GŁÓWNE</span>
+          </div>
+          
+          <ul class="space-y-2.5 text-xs text-slate-300">
+            <li class="flex items-center gap-2">
+              <span class="text-cyan-400">✓</span>
+              <span><b>Belka górna w jednej linii:</b> Pełny pasek giełd (Binance, OKX itd.) bez załamywania wierszy</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-cyan-400">✓</span>
+              <span><b>TradingView 100% Canvas:</b> Pełna swoboda analizy świec, wskaźników SMC i poziomów Fibonacciego</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-cyan-400">✓</span>
+              <span><b>Multi-Agent Workspace:</b> Równoległy podgląd decyzji 5 agentów AI i modeli sentymentu NLP</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Mobile Card -->
+        <div class="glass-card rounded-3xl p-5 space-y-4 border border-purple-500/30">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center space-x-2">
+              <span class="text-2xl">📱</span>
+              <div>
+                <h3 class="font-extrabold text-white text-base">Smartfon (iOS / Android Native UI)</h3>
+                <p class="text-[11px] text-slate-400 font-mono">Dolny pasek MobileNavBar • Obsługa dotykiem</p>
+              </div>
+            </div>
+            <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono text-[10px] font-bold">APLIKACJA MOBILNA</span>
+          </div>
+
+          <ul class="space-y-2.5 text-xs text-slate-300">
+            <li class="flex items-center gap-2">
+              <span class="text-purple-400">✓</span>
+              <span><b>Dolny pasek mobilny:</b> Błyskawiczny dostęp do Wykresu, Futures, Zleceń i Chmury pod kciukiem</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-purple-400">✓</span>
+              <span><b>Gesty dotykowe na wykresie:</b> Płynny panning dwoma palcami i zoom szczypaniem (pinch)</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-purple-400">✓</span>
+              <span><b>Synchronizacja WebSocket w chmurze:</b> Otwarcie pozycji na telefonie natychmiast odświeża PC</span>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 7. ARCHITECTURE & CVE-2026-114108 SECURITY -->
+  <!-- ========================================================================= -->
+  <section id="architektura" class="py-16 px-4">
+    <div class="max-w-6xl mx-auto space-y-10">
+      
+      <div class="text-center space-y-2">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold">
+          <span>🏛️ 4 WARSTWY ARCHITEKTURY</span>
+        </div>
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-white">
+          Determinizm & Ochrona Przed Ryzykiem
+        </h2>
+        <p class="text-sm text-slate-400 max-w-2xl mx-auto">
+          Poznaj podział odpowiedzialności modułów kwantytatywnych od orkiestracji wieloagentowej.
+        </p>
+      </div>
+
+      <!-- 4 Pillars Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <div class="glass-card rounded-2xl p-5 space-y-3 border-t-2 border-t-cyan-400">
+          <div class="text-cyan-400 font-mono font-bold text-xs uppercase">Warstwa 1</div>
+          <h3 class="font-extrabold text-white text-base">Analiza Techniczna & SMC</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            <code>pandas-ta-classic</code>, <code>numba</code> oraz <code>smartmoneyconcepts</code>. Wskaźniki SMA, HMA, Carter Squeeze, RSI, MACD oraz FVG, Order Blocks i BOS.
+          </p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 space-y-3 border-t-2 border-t-purple-400">
+          <div class="text-purple-400 font-mono font-bold text-xs uppercase">Warstwa 2</div>
+          <h3 class="font-extrabold text-white text-base">Sentyment NLP Dual-Engine</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Dedykowane modele <code>ProsusAI/finbert</code> dla akcji i wiadomości SEC Form 4 oraz <code>ElKulako/cryptobert</code> dla social media (Reddit, X, StockTwits).
+          </p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 space-y-3 border-t-2 border-t-emerald-400">
+          <div class="text-emerald-400 font-mono font-bold text-xs uppercase">Warstwa 3</div>
+          <h3 class="font-extrabold text-white text-base">Orkiestracja TradingAgents</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Biuro doradcze oparte o LangGraph v0.6.0: Technical, SMC, Sentiment, Risk Guardian ($R:R \ge 2.0$) oraz Portfolio Manager podejmujący decyzję BUY/SELL/HOLD.
+          </p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 space-y-3 border-t-2 border-t-amber-400">
+          <div class="text-amber-400 font-mono font-bold text-xs uppercase">Warstwa 4</div>
+          <h3 class="font-extrabold text-white text-base">Egzekucja & Backtest</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            <code>vectorbt</code> (błyskawiczna optymalizacja siatek parametrów), <code>NautilusTrader</code> (symulator tickowy ze slippage) oraz sterowniki <code>CCXT</code> i <code>ib_async</code> (IBKR).
+          </p>
+        </div>
+
+      </div>
+
+      <!-- CVE-2026-114108 Security Audit Banner -->
+      <div class="rounded-3xl p-5 sm:p-6 bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-950 border border-emerald-500/40 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center space-x-3.5">
+          <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 text-2xl font-bold border border-emerald-500/30 flex-shrink-0">
+            🛡️
+          </span>
+          <div>
+            <h4 class="text-base font-extrabold text-white flex items-center gap-2">
+              Remediacja Podatności CVE-2026-114108
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ACTIVE</span>
+            </h4>
+            <p class="text-xs text-slate-400 mt-0.5 max-w-2xl">
+              Mostek <code>vibe-trading serve</code> na porcie 8899 jest rygorystycznie zabezpieczony. Każde zapytanie wymaga nagłówka <code>Authorization: Bearer &lt;API_AUTH_KEY&gt;</code>. Brak tokenu blokuje start silnika.
+            </p>
+          </div>
+        </div>
+        <div class="font-mono text-xs text-emerald-400 bg-emerald-950/60 px-3 py-1.5 rounded-xl border border-emerald-500/30 whitespace-nowrap">
+          STATUS: SECURED & VERIFIED
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 8. QUICKSTART & INSTALLATION GUIDE -->
+  <!-- ========================================================================= -->
+  <section id="quickstart" class="py-16 px-4 bg-slate-900/40 border-t border-slate-800">
+    <div class="max-w-5xl mx-auto space-y-8">
+      
+      <div class="text-center space-y-2">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold">
+          <span>🚀 REPRODUCIBLE DEPLOYMENT</span>
+        </div>
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-white">
+          Szybki Start w 3 Krokach
+        </h2>
+        <p class="text-sm text-slate-400">
+          Uruchom kompletne środowisko na Pythonie 3.13 z menedżerem <code>uv</code> w mniej niż minutę.
+        </p>
+      </div>
+
+      <!-- Steps List with 1-click Copy -->
+      <div class="space-y-4 font-mono text-xs">
+        
+        <!-- Step 1 -->
+        <div class="glass-card rounded-2xl p-4 space-y-2">
+          <div class="flex items-center justify-between text-slate-300 font-sans font-bold">
+            <span>Krok 1: Klonowanie repozytorium GitHub</span>
+            <span class="text-cyan-400 text-xs font-mono">Git</span>
+          </div>
+          <div class="relative bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+            <code class="text-cyan-300 select-all">git clone https://github.com/gitgregor/strateg_ai_v108_determ_separ_llm.git && cd strateg_ai_v108_determ_separ_llm</code>
+            <button onclick="copyCmd(this, 'git clone https://github.com/gitgregor/strateg_ai_v108_determ_separ_llm.git && cd strateg_ai_v108_determ_separ_llm')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-sans font-bold ml-2">
+              Kopiuj
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="glass-card rounded-2xl p-4 space-y-2">
+          <div class="flex items-center justify-between text-slate-300 font-sans font-bold">
+            <span>Krok 2: Instalacja środowiska przez uv (Python 3.13)</span>
+            <span class="text-purple-400 text-xs font-mono">PowerShell / Bash</span>
+          </div>
+          <div class="relative bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+            <code class="text-purple-300 select-all">uv venv --python 3.13 && .\setup_env.ps1</code>
+            <button onclick="copyCmd(this, 'uv venv --python 3.13 && .\\setup_env.ps1')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-sans font-bold ml-2">
+              Kopiuj
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="glass-card rounded-2xl p-4 space-y-2">
+          <div class="flex items-center justify-between text-slate-300 font-sans font-bold">
+            <span>Krok 3: Uruchomienie aplikacji i kokpitu</span>
+            <span class="text-emerald-400 text-xs font-mono">FastAPI</span>
+          </div>
+          <div class="relative bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+            <code class="text-emerald-300 select-all">python main.py</code>
+            <button onclick="copyCmd(this, 'python main.py')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-sans font-bold ml-2">
+              Kopiuj
+            </button>
+          </div>
+          <div class="text-[11px] text-slate-400 font-sans">
+            Aplikacja natychmiast uruchamia się pod adresem: <a href="http://localhost:8000/app" class="text-cyan-400 underline font-bold" target="_blank">http://localhost:8000/app</a>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 9. FOOTER -->
+  <!-- ========================================================================= -->
+  <footer class="border-t border-slate-800 bg-slate-950/95 py-8 px-4 text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-2">
+        <span class="font-extrabold text-white text-sm">STRATEG<span class="text-cyan-400">.AI</span></span>
+        <span class="text-slate-600">|</span>
+        <span>Autor: <a href="https://github.com/gitgregor" target="_blank" class="text-cyan-300 font-bold hover:underline">gitgregor</a></span>
+        <span class="text-slate-600">|</span>
+        <span>Licencja: MIT Open Source</span>
+      </div>
+      
+      <div class="flex items-center space-x-4">
+        <a href="https://github.com/gitgregor/strateg_ai_v108_determ_separ_llm" target="_blank" class="hover:text-white transition-colors">Repozytorium GitHub</a>
+        <span>•</span>
+        <a href="#simulator" class="hover:text-white transition-colors">Symulator Futures</a>
+        <span>•</span>
+        <a href="#quickstart" class="hover:text-white transition-colors">Instalacja</a>
+        <span>•</span>
+        <a href="#" class="hover:text-white transition-colors">Do góry ↑</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT: SIMULATOR & CANVAS CHARTS LOGIC -->
+  <!-- ========================================================================= -->
+  <script>
+    // Copy Command to clipboard
+    function copyCmd(btn, text) {
+      navigator.clipboard.writeText(text);
+      const prev = btn.innerText;
+      btn.innerText = '✓ Skopiowano';
+      btn.classList.add('bg-emerald-600', 'text-white');
+      setTimeout(() => {
+        btn.innerText = prev;
+        btn.classList.remove('bg-emerald-600', 'text-white');
+      }, 2000);
+    }
+
+    // Simulator State
+    let simCash = 100000.0;
+    let simMargin = 0.0;
+    let simRealizedPnl = 0.0;
+    let activePos = null;
+    let currentDir = 'LONG';
+
+    function setDirection(dir) {
+      currentDir = dir;
+      const bLong = document.getElementById('btn-long');
+      const bShort = document.getElementById('btn-short');
+      if (dir === 'LONG') {
+        bLong.className = 'py-2 rounded-xl text-xs font-extrabold transition-all bg-emerald-600 text-white shadow-md shadow-emerald-600/30 cursor-pointer';
+        bShort.className = 'py-2 rounded-xl text-xs font-extrabold transition-all bg-slate-800 text-slate-400 hover:text-white cursor-pointer';
+      } else {
+        bShort.className = 'py-2 rounded-xl text-xs font-extrabold transition-all bg-rose-600 text-white shadow-md shadow-rose-600/30 cursor-pointer';
+        bLong.className = 'py-2 rounded-xl text-xs font-extrabold transition-all bg-slate-800 text-slate-400 hover:text-white cursor-pointer';
+      }
+      recalculate();
+    }
+
+    function onLeverageChange() {
+      const lev = document.getElementById('select-lev').value;
+      document.getElementById('label-lev').innerText = lev + 'x';
+      recalculate();
+    }
+
+    function recalculate() {
+      const p = parseFloat(document.getElementById('input-price').value) || 70000;
+      const q = parseFloat(document.getElementById('input-qty').value) || 1.0;
+      const lev = parseInt(document.getElementById('select-lev').value) || 10;
+      const sl = parseFloat(document.getElementById('input-sl').value) || (currentDir === 'LONG' ? 68000 : 72000);
+
+      const notional = p * q;
+      const margin = notional / lev;
+      
+      // Exact liquidation formula: Entry * (1 +/- 0.9/lev)
+      const liq = currentDir === 'LONG'
+        ? p * (1 - 0.9 / lev)
+        : p * (1 + 0.9 / lev);
+
+      document.getElementById('calc-notional').innerText = '$' + notional.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('calc-margin').innerText = '$' + margin.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('calc-liq').innerText = '$' + liq.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      // Calculate R:R for TP levels
+      const risk = Math.abs(p - sl);
+      const tp1 = parseFloat(document.getElementById('input-tp1').value) || (p + risk * 2.0);
+      const tp2 = parseFloat(document.getElementById('input-tp2').value) || (p + risk * 3.0);
+      const tp3 = parseFloat(document.getElementById('input-tp3').value) || (p + risk * 4.5);
+
+      if (risk > 0) {
+        document.getElementById('rr-tp1').innerText = 'R:R ' + (Math.abs(tp1 - p) / risk).toFixed(1) + ':1';
+        document.getElementById('rr-tp2').innerText = 'R:R ' + (Math.abs(tp2 - p) / risk).toFixed(1) + ':1';
+        document.getElementById('rr-tp3').innerText = 'R:R ' + (Math.abs(tp3 - p) / risk).toFixed(1) + ':1';
+      }
+    }
+
+    function applyAiPreset() {
+      setDirection('LONG');
+      document.getElementById('input-price').value = '70000';
+      document.getElementById('input-qty').value = '1.0';
+      document.getElementById('select-lev').value = '10';
+      document.getElementById('label-lev').innerText = '10x';
+      document.getElementById('input-sl').value = '68000';
+      document.getElementById('input-tp1').value = '74000';
+      document.getElementById('input-tp2').value = '76000';
+      document.getElementById('input-tp3').value = '79000';
+      recalculate();
+      logEvent('⚡ Zastosowano podpowiedź strategii AI (TradingAgents v0.6.0): LONG BTC/USDT z dźwignią 10x i R:R > 2.0.');
+    }
+
+    function openSimulationPosition() {
+      const p = parseFloat(document.getElementById('input-price').value);
+      const q = parseFloat(document.getElementById('input-qty').value);
+      const lev = parseInt(document.getElementById('select-lev').value);
+      const sl = parseFloat(document.getElementById('input-sl').value);
+      const tp1 = parseFloat(document.getElementById('input-tp1').value);
+      const tp2 = parseFloat(document.getElementById('input-tp2').value);
+      const tp3 = parseFloat(document.getElementById('input-tp3').value);
+
+      const margin = (p * q) / lev;
+      const liq = currentDir === 'LONG' ? p * (1 - 0.9 / lev) : p * (1 + 0.9 / lev);
+
+      if (margin > simCash) {
+        alert('Niewystarczające środki w portfelu na depozyt!');
+        return;
+      }
+
+      simCash -= margin;
+      simMargin += margin;
+      updateHeaderMetrics(0.0);
+
+      activePos = {
+        direction: currentDir,
+        entry: p,
+        qty: q,
+        remainingQty: q,
+        leverage: lev,
+        sl: sl,
+        margin: margin,
+        liq: liq,
+        tp1: { price: tp1, hit: false, pct: 0.33 },
+        tp2: { price: tp2, hit: false, pct: 0.33 },
+        tp3: { price: tp3, hit: false, pct: 0.34 },
+        status: 'OPEN'
+      };
+
+      logEvent(`🟢 Otwarto pozycję ${currentDir} ${lev}x na $${p.toFixed(2)}. Zablokowano depozyt: $${margin.toFixed(2)}.`);
+      renderPositionCard();
+    }
+
+    function renderPositionCard(currentPrice = null) {
+      const c = document.getElementById('position-container');
+      if (!activePos) {
+        c.innerHTML = `
+          <div class="flex flex-col items-center justify-center p-8 rounded-2xl border border-dashed border-slate-800 bg-slate-950/40 text-slate-500 text-xs space-y-2 text-center">
+            <span class="text-3xl">💤</span>
+            <p class="font-bold text-slate-400">Brak otwartej pozycji w symulatorze.</p>
+            <p>Ustaw parametry po lewej stronie i kliknij <b>"⚡ Otwórz Pozycję Futures"</b>.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const cp = currentPrice || activePos.entry;
+      const isLong = activePos.direction === 'LONG';
+      const pnl = isLong ? (cp - activePos.entry) * activePos.remainingQty : (activePos.entry - cp) * activePos.remainingQty;
+      const roe = (pnl / activePos.margin) * 100;
+
+      updateHeaderMetrics(pnl);
+
+      c.innerHTML = `
+        <div class="rounded-2xl border border-slate-700 bg-slate-950 p-4 font-mono text-xs space-y-3 relative">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="px-2 py-0.5 rounded font-extrabold text-[10px] ${isLong ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'}">
+                ${activePos.direction} ${activePos.leverage}x
+              </span>
+              <span class="font-bold text-white">BTC/USDT</span>
+              <span class="text-slate-400 text-[11px]">Pozostało: ${activePos.remainingQty.toFixed(2)} BTC</span>
+            </div>
+            <div class="text-right">
+              <div class="font-extrabold text-sm ${pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${roe.toFixed(2)}% ROE)
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 text-[11px]">
+            <div><span class="text-slate-400">Entry:</span> <b class="text-white">$${activePos.entry.toFixed(2)}</b></div>
+            <div><span class="text-slate-400">Rynek:</span> <b class="text-cyan-300">$${cp.toFixed(2)}</b></div>
+            <div><span class="text-rose-400">Likwidacja:</span> <b class="text-rose-300">$${activePos.liq.toFixed(2)}</b></div>
+          </div>
+
+          <!-- Progress of TPs -->
+          <div class="flex items-center justify-between text-[10px] pt-1 border-t border-slate-800">
+            <span class="px-2 py-0.5 rounded ${activePos.tp1.hit ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400'}">
+              TP1 ($${activePos.tp1.price}): ${activePos.tp1.hit ? 'WYKONANO ✓' : 'OCZEKUJE'}
+            </span>
+            <span class="px-2 py-0.5 rounded ${activePos.tp2.hit ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400'}">
+              TP2 ($${activePos.tp2.price}): ${activePos.tp2.hit ? 'WYKONANO ✓' : 'OCZEKUJE'}
+            </span>
+            <span class="px-2 py-0.5 rounded ${activePos.tp3.hit ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400'}">
+              TP3 ($${activePos.tp3.price}): ${activePos.tp3.hit ? 'WYKONANO ✓' : 'OCZEKUJE'}
+            </span>
+          </div>
+        </div>
+      `;
+    }
+
+    function simulateTick(price) {
+      if (!activePos) {
+        alert('Najpierw otwórz pozycję w symulatorze!');
+        return;
+      }
+
+      const isLong = activePos.direction === 'LONG';
+
+      // Check Liquidation
+      if ((isLong && price <= activePos.liq) || (!isLong && price >= activePos.liq)) {
+        simMargin = 0.0;
+        activePos = null;
+        updateHeaderMetrics(0.0);
+        renderPositionCard();
+        logEvent(`💀 POZYCJA ZLIKWIDOWANA na cenie $${price.toFixed(2)}! Utrata depozytu zabezpieczającego.`);
+        alert('POZYCJA ZLIKWIDOWANA! Kurs dotknął ceny likwidacji.');
+        return;
+      }
+
+      // Check TP1
+      if (!activePos.tp1.hit && ((isLong && price >= activePos.tp1.price) || (!isLong && price <= activePos.tp1.price))) {
+        activePos.tp1.hit = true;
+        const closedQty = activePos.qty * activePos.tp1.pct;
+        const profit = isLong ? (activePos.tp1.price - activePos.entry) * closedQty : (activePos.entry - activePos.tp1.price) * closedQty;
+        const returnedMargin = (activePos.margin * activePos.tp1.pct);
+        simCash += returnedMargin + profit;
+        simMargin -= returnedMargin;
+        simRealizedPnl += profit;
+        activePos.remainingQty -= closedQty;
+        logEvent(`🎯 ZREALIZOWANO TP1 na $${activePos.tp1.price.toFixed(2)}! Zaksięgowano zysk +$${profit.toFixed(2)}. Zwrócono depozyt.`);
+      }
+
+      // Check TP3 (Full close)
+      if (!activePos.tp3.hit && ((isLong && price >= activePos.tp3.price) || (!isLong && price <= activePos.tp3.price))) {
+        activePos.tp2.hit = true;
+        activePos.tp3.hit = true;
+        const profit = isLong ? (activePos.tp3.price - activePos.entry) * activePos.remainingQty : (activePos.entry - activePos.tp3.price) * activePos.remainingQty;
+        simCash += simMargin + profit;
+        simRealizedPnl += profit;
+        simMargin = 0.0;
+        activePos = null;
+        updateHeaderMetrics(0.0);
+        renderPositionCard();
+        logEvent(`🏆 ZREALIZOWANO OSTATECZNE TP3 na $${price.toFixed(2)}! Pełne zamknięcie pozycji. Zysk: +$${profit.toFixed(2)}.`);
+        alert('Gratulacje! Zrealizowano wszystkie poziomy TP (R:R > 2.0). Pozycja w pełni zamknięta z zyskiem!');
+        return;
+      }
+
+      renderPositionCard(price);
+      logEvent(`Tick rynkowy: $${price.toFixed(2)}`);
+    }
+
+    function resetSim() {
+      simCash = 100000.0;
+      simMargin = 0.0;
+      simRealizedPnl = 0.0;
+      activePos = null;
+      updateHeaderMetrics(0.0);
+      renderPositionCard();
+      logEvent('Portfel symulatora zresetowany do $100,000.00.');
+    }
+
+    function updateHeaderMetrics(unrealized) {
+      document.getElementById('sim-cash').innerText = '$' + simCash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('sim-margin').innerText = '$' + simMargin.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('sim-realized').innerText = (simRealizedPnl >= 0 ? '+$' : '-$') + Math.abs(simRealizedPnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      
+      const unEl = document.getElementById('sim-unrealized');
+      unEl.innerText = (unrealized >= 0 ? '+$' : '-$') + Math.abs(unrealized).toFixed(2);
+      unEl.className = 'text-lg font-extrabold ' + (unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400');
+    }
+
+    function logEvent(msg) {
+      const el = document.getElementById('event-log');
+      const time = new Date().toLocaleTimeString('pl-PL');
+      const div = document.createElement('div');
+      div.className = 'text-slate-300 py-0.5 border-b border-slate-900 flex items-start gap-2';
+      div.innerHTML = `<span class="text-slate-500 font-mono text-[10px]">[${time}]</span><span>${msg}</span>`;
+      el.prepend(div);
+    }
+
+    // Interactive Candlestick Canvas Drawing
+    function initHeroChart() {
+      const canvas = document.getElementById('hero-chart-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      
+      function resize() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+        draw();
+      }
+
+      function draw() {
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        // Grid lines
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1;
+        for (let y = 30; y < h; y += 40) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+          ctx.stroke();
+        }
+
+        // Draw synthetic institutional candles
+        const candles = 36;
+        const candleWidth = Math.max(6, (w / candles) * 0.65);
+        let p = 68000;
+        const minP = 66000;
+        const maxP = 73000;
+
+        for (let i = 0; i < candles; i++) {
+          const x = (i * (w / candles)) + (w / candles) / 2;
+          const change = Math.sin(i * 0.4) * 600 + (Math.random() - 0.47) * 400;
+          const open = p;
+          const close = p + change;
+          const high = Math.max(open, close) + Math.random() * 300;
+          const low = Math.min(open, close) - Math.random() * 300;
+          p = close;
+
+          const yOpen = h - ((open - minP) / (maxP - minP)) * (h - 60) - 30;
+          const yClose = h - ((close - minP) / (maxP - minP)) * (h - 60) - 30;
+          const yHigh = h - ((high - minP) / (maxP - minP)) * (h - 60) - 30;
+          const yLow = h - ((low - minP) / (maxP - minP)) * (h - 60) - 30;
+
+          const isUp = close >= open;
+          ctx.strokeStyle = isUp ? '#10b981' : '#ef4444';
+          ctx.fillStyle = isUp ? '#10b981' : '#ef4444';
+
+          // Wick
+          ctx.beginPath();
+          ctx.moveTo(x, yHigh);
+          ctx.lineTo(x, yLow);
+          ctx.stroke();
+
+          // Body
+          ctx.fillRect(x - candleWidth / 2, Math.min(yOpen, yClose), candleWidth, Math.max(2, Math.abs(yClose - yOpen)));
+        }
+
+        // Draw SMC Fair Value Gap (FVG) Zone
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.12)';
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+        ctx.setLineDash([4, 4]);
+        ctx.fillRect(w * 0.45, h * 0.42, w * 0.35, 32);
+        ctx.strokeRect(w * 0.45, h * 0.42, w * 0.35, 32);
+        ctx.setLineDash([]);
+
+        // SMA Line
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let x = 0; x < w; x += 10) {
+          const y = h * 0.55 + Math.sin(x * 0.015) * 40;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      window.addEventListener('resize', resize);
+      resize();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      recalculate();
+      initHeroChart();
+    });
+  </script>
+
+</body>
+</html>

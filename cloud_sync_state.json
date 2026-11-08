@@ -1,14 +1,14 @@
 {
-  "version": 2,
-  "last_updated": 1794124277.663433,
-  "last_device_source": "mobile:iphone-15-pro",
+  "version": 4,
+  "last_updated": 1794124635.223455,
+  "last_device_source": "desktop:dev_q6c16hu",
   "context": {
-    "symbol": "ETH/USDT",
-    "activeExchange": "OKX",
-    "timeframe": "4h",
+    "symbol": "BTC/USDT",
+    "activeExchange": "Binance",
+    "timeframe": "1d",
     "marketType": "FUTURES",
-    "profile": "SIM",
-    "isChartOpen": true
+    "profile": "READ",
+    "isChartOpen": false
   },
   "portfolio": {
     "cash": 100000.0,
