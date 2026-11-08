@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="pl" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Strateg AI – Institutional Trading & Advisor Cockpit with TradingView</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              950: '#020617',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background-color: #020617;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(51, 65, 85, 0.4);
+    }
+  </style>
+</head>
+<body class="selection:bg-cyan-500 selection:text-black min-h-screen flex flex-col">
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // Full-viewport TradingView interactive component right below header
+    function FullscreenTradingViewChart({ symbol, timeframe, candles, features, advice, onClose }) {
+      const containerRef = useRef(null);
+      const chartRef = useRef(null);
+      const [hoverInfo, setHoverInfo] = useState(null);
+
+      const [layers, setLayers] = useState({
+        sma20: true,
+        sma50: true,
+        sma200: false,
+        hma20: true,
+        bbands: true,
+        volume: true,
+        fvg: true,
+        orderBlocks: true,
+        bos: true,
+        entryLevel: true,
+        stopLoss: true,
+        takeProfit: true
+      });
+
+      const toggleLayer = (k) => setLayers(prev => ({ ...prev, [k]: !prev[k] }));
+
+      useEffect(() => {
+        if (!containerRef.current || !candles || candles.length === 0) return;
+
+        if (chartRef.current) {
+          chartRef.current.remove();
+          chartRef.current = null;
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        const sortedData = candles.map((c, i) => ({
+          time: typeof c.timestamp === 'number' ? c.timestamp : (now - (candles.length - i) * 3600),
+          open: Number(c.open),
+          high: Number(c.high),
+          low: Number(c.low),
+          close: Number(c.close),
+          volume: Number(c.volume || 100)
+        })).sort((a, b) => a.time - b.time);
+
+        const width = containerRef.current.clientWidth || 800;
+        const height = containerRef.current.clientHeight || 550;
+
+        const chart = LightweightCharts.createChart(containerRef.current, {
+          width: width,
+          height: height,
+          layout: {
+            background: { type: 'solid', color: '#020617' },
+            textColor: '#94a3b8',
+            fontSize: 11
+          },
+          grid: {
+            vertLines: { color: 'rgba(30, 41, 59, 0.45)', style: 1 },
+            horzLines: { color: 'rgba(30, 41, 59, 0.45)', style: 1 }
+          },
+          crosshair: {
+            mode: 1,
+            vertLine: { color: '#38bdf8', width: 1, style: 3 },
+            horzLine: { color: '#38bdf8', width: 1, style: 3 }
+          },
+          timeScale: { borderColor: '#1e293b', timeVisible: true },
+          rightPriceScale: { borderColor: '#1e293b', autoScale: true },
+          handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true },
+          handleScale: { axisPressedMouseMove: { time: true, price: true }, mouseWheel: true, pinch: true }
+        });
+
+        chartRef.current = chart;
+
+        const candleSeries = chart.addCandlestickSeries({
+          upColor: '#10b981',
+          downColor: '#ef4444',
+          borderVisible: false,
+          wickUpColor: '#10b981',
+          wickDownColor: '#ef4444'
+        });
+        candleSeries.setData(sortedData);
+
+        if (layers.volume) {
+          const volSeries = chart.addHistogramSeries({ color: '#38bdf8', priceScaleId: 'vol_scale' });
+          chart.priceScale('vol_scale').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
+          volSeries.setData(sortedData.map(c => ({
+            time: c.time,
+            value: c.volume,
+            color: c.close >= c.open ? 'rgba(16, 185, 129, 0.28)' : 'rgba(239, 68, 68, 0.28)'
+          })));
+        }
+
+        if (layers.sma20) {
+          const s20 = chart.addLineSeries({ color: '#38bdf8', lineWidth: 1.5, title: 'SMA 20' });
+          const maData = [];
+          for (let i = 19; i < sortedData.length; i++) {
+            let sum = 0;
+            for (let j = 0; j < 20; j++) sum += sortedData[i - j].close;
+            maData.push({ time: sortedData[i].time, value: sum / 20 });
+          }
+          s20.setData(maData);
+        }
+
+        if (layers.sma50) {
+          const s50 = chart.addLineSeries({ color: '#a855f7', lineWidth: 1.5, title: 'SMA 50' });
+          const maData = [];
+          for (let i = 49; i < sortedData.length; i++) {
+            let sum = 0;
+            for (let j = 0; j < 50; j++) sum += sortedData[i - j].close;
+            maData.push({ time: sortedData[i].time, value: sum / 50 });
+          }
+          s50.setData(maData);
+        }
+
+        if (layers.bos && features?.structure_breaks) {
+          features.structure_breaks.slice(-2).forEach(sb => {
+            candleSeries.createPriceLine({
+              price: sb.level,
+              color: sb.direction === 1 ? '#34d399' : '#f87171',
+              lineWidth: 1.5,
+              lineStyle: 1,
+              title: `${sb.type} ${sb.direction === 1 ? '▲' : '▼'}`
+            });
+          });
+        }
+
+        if (layers.orderBlocks && features?.order_blocks) {
+          features.order_blocks.slice(-2).forEach(ob => {
+            candleSeries.createPriceLine({
+              price: (ob.top + ob.bottom) / 2,
+              color: ob.direction === 1 ? '#10b981' : '#ef4444',
+              lineWidth: 2,
+              lineStyle: 0,
+              title: ob.direction === 1 ? 'DEMAND OB' : 'SUPPLY OB'
+            });
+          });
+        }
+
+        if (advice?.decision) {
+          const dec = advice.decision;
+          if (layers.entryLevel && dec.entry_price) {
+            candleSeries.createPriceLine({ price: dec.entry_price, color: '#38bdf8', lineWidth: 2, title: `ENTRY (${dec.action})` });
+          }
+          if (layers.stopLoss && dec.stop_loss) {
+            candleSeries.createPriceLine({ price: dec.stop_loss, color: '#f43f5e', lineWidth: 2, lineStyle: 2, title: 'STOP LOSS' });
+          }
+          if (layers.takeProfit && dec.take_profit) {
+            candleSeries.createPriceLine({ price: dec.take_profit, color: '#10b981', lineWidth: 2, lineStyle: 2, title: 'TAKE PROFIT' });
+          }
+        }
+
+        chart.subscribeCrosshairMove(p => {
+          if (!p || !p.seriesPrices) { setHoverInfo(null); return; }
+          const val = p.seriesPrices.get(candleSeries);
+          if (val) setHoverInfo(val);
+        });
+
+        const resizeObs = new ResizeObserver(entries => {
+          if (!entries || entries.length === 0) return;
+          const { width, height } = entries[0].contentRect;
+          if (width > 0 && height > 0 && chartRef.current) {
+            chartRef.current.applyOptions({ width, height });
+          }
+        });
+        resizeObs.observe(containerRef.current);
+
+        return () => {
+          resizeObs.disconnect();
+          if (chartRef.current) {
+            chartRef.current.remove();
+            chartRef.current = null;
+          }
+        };
+      }, [candles, layers, features, advice]);
+
+      return (
+        <div className="fixed inset-x-0 bottom-0 top-[60px] z-40 bg-slate-950 flex flex-col overflow-hidden animate-fadeIn">
+          {/* Compact Top Control Strip */}
+          <div className="bg-slate-900/95 border-b border-slate-800 px-3 py-2 flex flex-col gap-1.5 flex-shrink-0">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+              <div className="flex items-center space-x-3">
+                <span className="text-white font-bold">{symbol} <span className="bg-slate-800 text-cyan-400 px-1 rounded text-[10px]">{timeframe}</span></span>
+                {hoverInfo ? (
+                  <span className="text-slate-300 text-[11px] hidden sm:inline">
+                    O: <b className="text-white">${hoverInfo.open?.toFixed(2)}</b> H: <b className="text-emerald-400">${hoverInfo.high?.toFixed(2)}</b> L: <b className="text-rose-400">${hoverInfo.low?.toFixed(2)}</b> C: <b className="text-cyan-300">${hoverInfo.close?.toFixed(2)}</b>
+                  </span>
+                ) : (
+                  <span className="text-slate-500 text-[11px] hidden sm:inline">Close: ${features?.latest_close?.toFixed(2)}</span>
+                )}
+              </div>
+              <div className="flex items-center space-x-1.5">
+                <button
+                  onClick={() => chartRef.current && chartRef.current.timeScale().fitContent()}
+                  className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
+                >
+                  ⛶ Dopasuj Skalę
+                </button>
+                {onClose && (
+                  <button
+                    onClick={onClose}
+                    className="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold"
+                  >
+                    ✕ Kokpit
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Modules Strategy Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto text-[11px] font-mono py-0.5">
+              <span className="text-[10px] text-slate-400 font-sans font-bold">Wskaźniki:</span>
+              {[
+                { k: 'sma20', label: 'SMA 20', color: 'bg-cyan-500 text-slate-950 font-bold' },
+                { k: 'sma50', label: 'SMA 50', color: 'bg-purple-500 text-white font-bold' },
+                { k: 'orderBlocks', label: 'Order Blocks', color: 'bg-amber-500/20 text-amber-300 border border-amber-500/40' },
+                { k: 'bos', label: 'Wybicia BOS', color: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40' },
+                { k: 'entryLevel', label: 'Poziom Wejścia', color: 'bg-blue-500 text-white font-bold' },
+                { k: 'stopLoss', label: 'Stop Loss', color: 'bg-rose-500 text-white font-bold' },
+                { k: 'takeProfit', label: 'Take Profit', color: 'bg-emerald-500 text-slate-950 font-bold' },
+                { k: 'volume', label: 'Wolumen', color: 'bg-cyan-600 text-white font-bold' }
+              ].map(item => (
+                <button
+                  key={item.k}
+                  onClick={() => toggleLayer(item.k)}
+                  className={`px-2 py-0.5 rounded transition-all whitespace-nowrap ${layers[item.k] ? item.color : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  {layers[item.k] ? '✓ ' : ''}{item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Full-Height Chart Canvas */}
+          <div className="flex-1 w-full min-h-0 relative bg-slate-950">
+            <div ref={containerRef} className="w-full h-full cursor-crosshair" />
+            <div className="absolute bottom-2 left-3 pointer-events-none rounded bg-slate-900/80 px-2 py-1 text-[10px] font-mono text-slate-400 border border-slate-800">
+              🔍 Przeciągaj oś Y (cenę) lub oś X (czas) • Kółko = Zoom • Drag = Przesuwanie
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [profile, setProfile] = useState('SIM');
+      const [symbol, setSymbol] = useState('BTC/USDT');
+      const [assetClass, setAssetClass] = useState('CRYPTO');
+      const [marketType, setMarketType] = useState('FUTURES');
+      const [timeframe, setTimeframe] = useState('1h');
+
+      const [isChartOpen, setIsChartOpen] = useState(false);
+      const [candles, setCandles] = useState([]);
+      const [features, setFeatures] = useState(null);
+      const [sentiment, setSentiment] = useState(null);
+      const [advice, setAdvice] = useState(null);
+      const [isLoading, setIsLoading] = useState(false);
+
+      const handleAnalyze = async () => {
+        setIsLoading(true);
+        const baseP = symbol.includes('BTC') ? 67800.0 : (symbol.includes('AAPL') ? 228.0 : 100.0);
+        const now = Math.floor(Date.now() / 1000);
+        const genCandles = [];
+        let p = baseP;
+        for (let i = 0; i < 50; i++) {
+          const change = (Math.random() - 0.48) * 0.015;
+          const o = p;
+          const c = p * (1 + change);
+          const h = Math.max(o, c) * (1 + Math.random() * 0.005);
+          const l = Math.min(o, c) * (1 - Math.random() * 0.005);
+          genCandles.push({
+            timestamp: now - (50 - i) * 3600,
+            open: parseFloat(o.toFixed(2)),
+            high: parseFloat(h.toFixed(2)),
+            low: parseFloat(l.toFixed(2)),
+            close: parseFloat(c.toFixed(2)),
+            volume: parseFloat((100 + Math.random() * 500).toFixed(1))
+          });
+          p = c;
+        }
+        setCandles(genCandles);
+
+        try {
+          try {
+            const fRes = await fetch('/api/v1/features/analyze', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ symbol, timeframe, candles: genCandles })
+            });
+            if (fRes.ok) setFeatures(await fRes.json());
+          } catch(e) {}
+
+          try {
+            const sRes = await fetch('/api/v1/sentiment/analyze', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ symbol, asset_class: assetClass })
+            });
+            if (sRes.ok) setSentiment(await sRes.json());
+          } catch(e) {}
+
+          try {
+            const aRes = await fetch('/api/v1/advisor/evaluate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ symbol, asset_class: assetClass, market_type: marketType, timeframe, candles: genCandles })
+            });
+            if (aRes.ok) setAdvice(await aRes.json());
+          } catch(e) {}
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      useEffect(() => { handleAnalyze(); }, []);
+
+      return (
+        <div className="flex-1 flex flex-col min-h-screen">
+          {/* Header */}
+          <header className="glass-panel sticky top-0 z-50 h-[60px] px-6 py-3 border-b border-slate-800 flex items-center justify-between">
+            <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-cyan-500/20">
+                  ⚡
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-extrabold tracking-tight text-white text-lg">STRATEG<span className="text-cyan-400">.AI</span></span>
+                    <span className="bg-slate-800 text-slate-400 font-mono text-[10px] px-1.5 py-0.5 rounded">v1.0.8</span>
+                  </div>
+                  <span className="text-[11px] text-emerald-400 font-semibold hidden sm:flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                    Zasada nr 1: 100% Deterministyczna Izolacja Obliczeń od LLM
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                {/* PRZYCISK WYKRES */}
+                <button
+                  onClick={() => setIsChartOpen(!isChartOpen)}
+                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md cursor-pointer ${
+                    isChartOpen
+                      ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 ring-2 ring-cyan-400 shadow-cyan-500/30'
+                      : 'bg-slate-900 border border-slate-700 text-cyan-400 hover:text-white'
+                  }`}
+                >
+                  <span>📈</span>
+                  <span>Wykres</span>
+                  {isChartOpen && <span className="text-[10px] bg-slate-950 text-cyan-300 px-1.5 rounded">ON</span>}
+                </button>
+
+                <div className="flex rounded-lg bg-slate-900 border border-slate-800 p-1">
+                  {['READ', 'SIM', 'LIVE'].map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setProfile(m)}
+                      className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${
+                        profile === m
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* FULLSCREEN CHART OVERLAY DIRECTLY BELOW HEADER */}
+          {isChartOpen && (
+            <FullscreenTradingViewChart
+              symbol={symbol}
+              timeframe={timeframe}
+              candles={candles}
+              features={features}
+              advice={advice}
+              onClose={() => setIsChartOpen(false)}
+            />
+          )}
+
+          {/* Standard Cockpit Main Content (When Chart is closed) */}
+          <main className="max-w-7xl mx-auto w-full p-4 sm:p-6 space-y-6 flex-1">
+            <div className="glass-panel rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center space-x-3">
+                <div className="flex rounded-xl bg-slate-900 border border-slate-800 p-1">
+                  <button
+                    onClick={() => { setAssetClass('CRYPTO'); setSymbol('BTC/USDT'); }}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold ${assetClass === 'CRYPTO' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400'}`}
+                  >
+                    🪙 Krypto
+                  </button>
+                  <button
+                    onClick={() => { setAssetClass('EQUITY'); setSymbol('AAPL'); }}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold ${assetClass === 'EQUITY' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400'}`}
+                  >
+                    📈 Akcje
+                  </button>
+                </div>
+
+                <div className="flex rounded-xl bg-slate-900 border border-slate-800 p-1">
+                  <button
+                    onClick={() => setMarketType('SPOT')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold ${marketType === 'SPOT' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                  >
+                    Spot
+                  </button>
+                  <button
+                    onClick={() => setMarketType('FUTURES')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold ${marketType === 'FUTURES' ? 'bg-purple-600 text-white' : 'text-slate-400'}`}
+                  >
+                    Futures
+                  </button>
+                </div>
+
+                <input
+                  type="text"
+                  value={symbol}
+                  onChange={e => setSymbol(e.target.value.toUpperCase())}
+                  className="rounded-xl bg-slate-900 border border-slate-700 px-3 py-1 font-mono text-sm text-white w-28 text-center"
+                />
+              </div>
+
+              <button
+                onClick={handleAnalyze}
+                disabled={isLoading}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 hover:from-cyan-400 hover:to-blue-500 cursor-pointer"
+              >
+                {isLoading ? 'Wyliczanie Wskaźników...' : '⚡ Wylicz Wskaźniki i Uruchom Agentów'}
+              </button>
+            </div>
+
+            {advice && (
+              <div className="glass-panel-glow rounded-2xl p-6 border border-slate-800 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <span className="font-extrabold text-slate-100">
+                    TradingAgents v0.6.0 (LangGraph Multi-Agent Orchestrator)
+                  </span>
+                  <span className="font-mono text-xs text-slate-400">
+                    Alokacja portfela: <b className="text-cyan-400">{(advice.decision.target_allocation_pct * 100).toFixed(0)}%</b>
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-4 font-mono">
+                  <span className={`px-5 py-2.5 rounded-xl text-lg font-black tracking-wider ${
+                    advice.decision.action === 'BUY' ? 'bg-emerald-500 text-slate-950' : (advice.decision.action === 'SELL' ? 'bg-rose-500 text-white' : 'bg-slate-700 text-slate-300')
+                  }`}>
+                    {advice.decision.action} {advice.decision.direction}
+                  </span>
+                  <div className="flex space-x-3 text-xs">
+                    <div className="bg-slate-900 border border-slate-800 p-2 rounded-xl text-center min-w-[90px]">
+                      <span className="text-[10px] text-slate-400 block font-sans">Wejście</span>
+                      <span className="font-bold text-white">${advice.decision.entry_price?.toFixed(2)}</span>
+                    </div>
+                    <div className="bg-slate-900 border border-rose-900/40 p-2 rounded-xl text-center min-w-[90px]">
+                      <span className="text-[10px] text-rose-400 block font-sans">Stop Loss</span>
+                      <span className="font-bold text-rose-300">${advice.decision.stop_loss?.toFixed(2)}</span>
+                    </div>
+                    <div className="bg-slate-900 border border-emerald-900/40 p-2 rounded-xl text-center min-w-[90px]">
+                      <span className="text-[10px] text-emerald-400 block font-sans">Take Profit</span>
+                      <span className="font-bold text-emerald-300">${advice.decision.take_profit?.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

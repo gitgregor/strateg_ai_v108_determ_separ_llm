@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "last_updated": 1794124277.663433,
+  "last_device_source": "mobile:iphone-15-pro",
+  "context": {
+    "symbol": "ETH/USDT",
+    "activeExchange": "OKX",
+    "timeframe": "4h",
+    "marketType": "FUTURES",
+    "profile": "SIM",
+    "isChartOpen": true
+  },
+  "portfolio": {
+    "cash": 100000.0,
+    "used_margin": 0.0,
+    "total_equity": 100000.0,
+    "unrealized_pnl": 0.0,
+    "realized_pnl_total": 0.0
+  },
+  "active_positions": [],
+  "closed_positions": [],
+  "order_history": []
+}
